@@ -1,7 +1,13 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-const planet = struct { id: u32, x: f32, y: f32, vx: f32, vy: f32, mass: f32, color: rl.Color };
+const planet = struct {
+    id: i64,
+    pos: struct { x: f32, y: f32 },
+    accel: struct { x: f32, y: f32 },
+    mass: f32,
+    color: rl.Color,
+};
 
 pub fn main() !void {
     const width = 1280;
@@ -12,38 +18,31 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    const rand = std.crypto.random;
     var planets = [_]planet{
-        planet{
-            .id = rand.int(u32),
-            .x = width / 2 - 200,
-            .y = height / 2,
-            .vx = 0,
-            .vy = -30,
-            .mass = 30,
+        .{
+            .id = 0,
+            .pos = .{ .x = width / 2 - 200, .y = height / 2 },
+            .accel = .{ .x = 0, .y = -3000 },
+            .mass = 3000,
             .color = rl.Color.red,
         },
-        planet{
-            .id = rand.int(u32),
-            .x = width / 2 + 200,
-            .y = height / 2,
-            .vx = 0,
-            .vy = 30,
-            .mass = 20,
+        .{
+            .id = 1,
+            .pos = .{ .x = width / 2 + 200, .y = height / 2 },
+            .accel = .{ .x = 0, .y = 3000 },
+            .mass = 3000,
             .color = rl.Color.blue,
         },
-        planet{
-            .id = rand.int(u32),
-            .x = width / 2,
-            .y = height / 2,
-            .vx = 0,
-            .vy = 0,
+        .{
+            .id = 2,
+            .pos = .{ .x = width / 2, .y = height / 2 },
+            .accel = .{ .x = 0, .y = 0 },
             .mass = 3000,
             .color = rl.Color.green,
         },
     };
 
-    const G: f32 = 200;
+    const G: f32 = 10000;
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -52,15 +51,16 @@ pub fn main() !void {
         rl.clearBackground(rl.Color.white);
 
         for (&planets) |*elem| {
-            rl.drawCircle(@intFromFloat(elem.x), @intFromFloat(elem.y), 10, elem.color);
+            rl.drawCircle(@intFromFloat(elem.pos.x), @intFromFloat(elem.pos.y), 10, elem.color);
 
+            const dt = rl.getFrameTime();
             for (planets) |other| {
                 if (elem.id == other.id) {
                     continue;
                 }
 
-                const dx = other.x - elem.x;
-                const dy = other.y - elem.y;
+                const dy = other.pos.y - elem.pos.y;
+                const dx = other.pos.x - elem.pos.x;
                 const dist = std.math.sqrt(dx * dx + dy * dy);
 
                 if (dist == 0) {
@@ -70,12 +70,12 @@ pub fn main() !void {
                 const alpha = std.math.atan2(dy, dx);
                 const grav = G * elem.mass * other.mass / (dist * dist);
 
-                elem.x += grav * std.math.cos(alpha) / elem.mass * rl.getFrameTime();
-                elem.y += grav * std.math.sin(alpha) / elem.mass * rl.getFrameTime();
+                elem.accel.x += grav / elem.mass * std.math.cos(alpha) * dt;
+                elem.accel.y += grav / elem.mass * std.math.sin(alpha) * dt;
             }
 
-            elem.x += elem.vx * rl.getFrameTime();
-            elem.y += elem.vy * rl.getFrameTime();
+            elem.pos.x += elem.accel.x * dt * dt / 2;
+            elem.pos.y += elem.accel.y * dt * dt / 2;
         }
     }
 }
