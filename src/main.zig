@@ -19,10 +19,14 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
+    const rand = std.crypto.random;
     var planets = [_]planet{
         .{
             .id = 0,
-            .pos = .{ .x = width / 2 - 150, .y = height / 2 },
+            .pos = .{
+                .x = width / 2 - 150 + rand.floatNorm(f32),
+                .y = height / 2,
+            },
             .vel = .{ .x = 0, .y = -30 },
             .mass = 30,
             .size = 10,
@@ -30,7 +34,10 @@ pub fn main() !void {
         },
         .{
             .id = 1,
-            .pos = .{ .x = width / 2 + 150, .y = height / 2 },
+            .pos = .{
+                .x = width / 2 + 150 + rand.floatNorm(f32),
+                .y = height / 2,
+            },
             .vel = .{ .x = 0, .y = 30 },
             .mass = 30,
             .size = 10,
@@ -38,7 +45,10 @@ pub fn main() !void {
         },
         .{
             .id = 2,
-            .pos = .{ .x = width / 2, .y = height / 2 + 150 },
+            .pos = .{
+                .x = width / 2,
+                .y = height / 2 + 150 + rand.floatNorm(f32),
+            },
             .vel = .{ .x = -30, .y = 0 },
             .mass = 30,
             .size = 10,
@@ -46,7 +56,10 @@ pub fn main() !void {
         },
         .{
             .id = 2,
-            .pos = .{ .x = width / 2, .y = height / 2 - 150 },
+            .pos = .{
+                .x = width / 2,
+                .y = height / 2 - 150 + rand.floatNorm(f32),
+            },
             .vel = .{ .x = 30, .y = 0 },
             .mass = 30,
             .size = 10,
