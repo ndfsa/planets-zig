@@ -27,7 +27,7 @@ pub fn main() !void {
                 .x = width / 2 - 150 + rand.floatNorm(f32),
                 .y = height / 2,
             },
-            .vel = .{ .x = 0, .y = -30 },
+            .vel = .{ .x = 0, .y = -50 },
             .mass = 30,
             .size = 10,
             .color = rl.Color.red,
@@ -38,7 +38,7 @@ pub fn main() !void {
                 .x = width / 2 + 150 + rand.floatNorm(f32),
                 .y = height / 2,
             },
-            .vel = .{ .x = 0, .y = 30 },
+            .vel = .{ .x = 0, .y = 50 },
             .mass = 30,
             .size = 10,
             .color = rl.Color.blue,
@@ -49,37 +49,49 @@ pub fn main() !void {
                 .x = width / 2,
                 .y = height / 2 + 150 + rand.floatNorm(f32),
             },
-            .vel = .{ .x = -30, .y = 0 },
+            .vel = .{ .x = -50, .y = 0 },
             .mass = 30,
             .size = 10,
             .color = rl.Color.green,
         },
         .{
-            .id = 2,
+            .id = 3,
             .pos = .{
                 .x = width / 2,
                 .y = height / 2 - 150 + rand.floatNorm(f32),
             },
-            .vel = .{ .x = 30, .y = 0 },
+            .vel = .{ .x = 50, .y = 0 },
             .mass = 30,
             .size = 10,
             .color = rl.Color.yellow,
         },
+        .{
+            .id = 4,
+            .pos = .{ .x = width / 2, .y = height / 2 },
+            .vel = .{ .x = 0, .y = 0 },
+            .mass = 300,
+            .size = 10,
+            .color = rl.Color.purple,
+        },
     };
 
-    const G: f32 = 8_000;
+    const G: f32 = 3000;
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(rl.Color.white);
+        rl.clearBackground(rl.Color.black);
 
+        // draw all the planets
         for (&planets) |*elem| {
             rl.drawCircle(@intFromFloat(elem.pos.x), @intFromFloat(elem.pos.y), elem.size, elem.color);
+        }
 
-            const dt = rl.getFrameTime();
-            for (planets) |other| {
+        // update vel vectors
+        const dt = rl.getFrameTime();
+        for (&planets) |*elem| {
+            for (&planets) |*other| {
                 if (elem.id == other.id) {
                     continue;
                 }
@@ -88,17 +100,16 @@ pub fn main() !void {
                 const dx = other.pos.x - elem.pos.x;
                 const dist = std.math.sqrt(dx * dx + dy * dy);
 
-                if (dist == 0) {
-                    continue;
-                }
-
                 const alpha = std.math.atan2(dy, dx);
                 const grav = G * elem.mass * other.mass / (dist * dist);
+                const accel = grav / elem.mass;
 
-                elem.vel.x += (grav / elem.mass) * std.math.cos(alpha) * dt;
-                elem.vel.y += (grav / elem.mass) * std.math.sin(alpha) * dt;
+                elem.vel.x += accel * std.math.cos(alpha) * dt;
+                elem.vel.y += accel * std.math.sin(alpha) * dt;
             }
+        }
 
+        for (&planets) |*elem| {
             elem.pos.x += elem.vel.x * dt;
             elem.pos.y += elem.vel.y * dt;
         }
