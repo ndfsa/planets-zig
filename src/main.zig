@@ -19,12 +19,19 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    const rand = std.crypto.random;
     var planets = [_]planet{
         .{
             .id = 0,
+            .pos = .{ .x = width / 2, .y = height / 2 },
+            .vel = .{ .x = 0, .y = 0 },
+            .mass = 300,
+            .size = 10,
+            .color = rl.Color.purple,
+        },
+        .{
+            .id = 1,
             .pos = .{
-                .x = width / 2 - 150 + rand.floatNorm(f32),
+                .x = width / 2 - 150,
                 .y = height / 2,
             },
             .vel = .{ .x = 0, .y = -50 },
@@ -33,49 +40,19 @@ pub fn main() !void {
             .color = rl.Color.red,
         },
         .{
-            .id = 1,
-            .pos = .{
-                .x = width / 2 + 150 + rand.floatNorm(f32),
-                .y = height / 2,
-            },
-            .vel = .{ .x = 0, .y = 50 },
-            .mass = 30,
-            .size = 10,
-            .color = rl.Color.blue,
-        },
-        .{
             .id = 2,
             .pos = .{
                 .x = width / 2,
-                .y = height / 2 + 150 + rand.floatNorm(f32),
+                .y = height / 2 + 150,
             },
             .vel = .{ .x = -50, .y = 0 },
             .mass = 30,
             .size = 10,
-            .color = rl.Color.green,
-        },
-        .{
-            .id = 3,
-            .pos = .{
-                .x = width / 2,
-                .y = height / 2 - 150 + rand.floatNorm(f32),
-            },
-            .vel = .{ .x = 50, .y = 0 },
-            .mass = 30,
-            .size = 10,
-            .color = rl.Color.yellow,
-        },
-        .{
-            .id = 4,
-            .pos = .{ .x = width / 2, .y = height / 2 },
-            .vel = .{ .x = 0, .y = 0 },
-            .mass = 300,
-            .size = 10,
-            .color = rl.Color.purple,
+            .color = rl.Color.blue,
         },
     };
 
-    const G: f32 = 3000;
+    const G: f32 = 1000;
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -85,7 +62,12 @@ pub fn main() !void {
 
         // draw all the planets
         for (&planets) |*elem| {
-            rl.drawCircle(@intFromFloat(elem.pos.x), @intFromFloat(elem.pos.y), elem.size, elem.color);
+            rl.drawCircle(
+                @intFromFloat(elem.pos.x),
+                @intFromFloat(elem.pos.y),
+                elem.size,
+                elem.color,
+            );
         }
 
         // update vel vectors
