@@ -3,97 +3,126 @@ const rl = @import("raylib");
 
 const planet = struct {
     id: i64,
-    pos: struct { x: f32, y: f32 },
-    vel: struct { x: f32, y: f32 },
+    pos: struct { x: f64, y: f64 },
+    vel: struct { x: f64, y: f64 },
+    acc: struct { x: f64, y: f64 },
     size: f32,
-    mass: f32,
+    mass: f64,
     color: rl.Color,
 };
 
 pub fn main() !void {
     const width = 1280;
-    const height = 720;
+    const height = 1280;
 
     rl.initWindow(width, height, "Planets");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
 
-    var planets = [_]planet{
-        .{
-            .id = 0,
-            .pos = .{ .x = width / 2, .y = height / 2 },
-            .vel = .{ .x = 0, .y = 0 },
-            .mass = 300,
-            .size = 10,
-            .color = rl.Color.purple,
-        },
-        .{
-            .id = 1,
-            .pos = .{
-                .x = width / 2 - 150,
-                .y = height / 2,
-            },
-            .vel = .{ .x = 0, .y = -50 },
-            .mass = 30,
-            .size = 10,
-            .color = rl.Color.red,
-        },
-        .{
-            .id = 2,
-            .pos = .{
-                .x = width / 2,
-                .y = height / 2 + 150,
-            },
-            .vel = .{ .x = -50, .y = 0 },
-            .mass = 30,
-            .size = 10,
-            .color = rl.Color.blue,
-        },
-    };
+    const rand = std.crypto.random;
+    var planets: [2000]planet = undefined;
 
-    const G: f32 = 1000;
+    const MAX_MASS: f64 = 1000;
+    const MIN_MASS: f64 = 1000;
+
+    const MAX_DIST: f64 = 1000;
+    const MIN_DIST: f64 = 10;
+
+    const MAX_VEL: f32 = 20;
+    const MIN_VEL: f32 = 10;
+
+    for (0.., &planets) |idx, *elem| {
+        elem.id = @intCast(idx);
+
+        elem.mass = MIN_MASS + ((MAX_MASS - MIN_MASS) * rand.float(f64));
+
+        elem.size = 5;
+
+        if (idx % 2 == 0) {
+            elem.color = rl.Color.white;
+        } else {
+            elem.color = rl.Color.red;
+        }
+
+        const dist = MIN_DIST + ((MAX_DIST - MIN_DIST) * rand.floatNorm(f64));
+        const alpha = rand.float(f64) * 2 * std.math.pi;
+        elem.pos = .{
+            .x = width / 2 + dist * std.math.sin(alpha),
+            .y = height / 2 + dist * std.math.cos(alpha),
+        };
+
+        const vel = MIN_VEL + ((MAX_VEL - MIN_VEL) * rand.float(f64));
+        const beta = alpha + std.math.pi / 2.0;
+        elem.vel = .{
+            .x = vel * std.math.sin(beta) * (dist / MAX_DIST),
+            .y = vel * std.math.cos(beta) * (dist / MAX_DIST),
+        };
+    }
+
+    var camera = rl.Camera2D{
+        .target = .{ .x = width / 2.0, .y = height / 2.0 },
+        .offset = .{ .x = width / 2.0, .y = height / 2.0 },
+        .rotation = 0.0,
+        .zoom = 1.0,
+    };
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
 
+        camera.zoom += rl.getMouseWheelMove() * 0.05;
+
         rl.clearBackground(rl.Color.black);
 
-        // draw all the planets
-        for (&planets) |*elem| {
-            rl.drawCircle(
-                @intFromFloat(elem.pos.x),
-                @intFromFloat(elem.pos.y),
-                elem.size,
-                elem.color,
-            );
-        }
+        {
+            rl.beginMode2D(camera);
+            defer rl.endMode2D();
 
+            // draw all the planets
+            for (&planets) |*elem| {
+                rl.drawCircle(
+                    @intFromFloat(elem.pos.x),
+                    @intFromFloat(elem.pos.y),
+                    elem.size,
+                    elem.color,
+                );
+            }
+        }
         // update vel vectors
         const dt = rl.getFrameTime();
-        for (&planets) |*elem| {
-            for (&planets) |*other| {
-                if (elem.id == other.id) {
-                    continue;
-                }
+        for (0..planets.len) |i| {
+            var elem = &planets[i];
+            for (i + 1..planets.len) |j| {
+                var other = &planets[j];
 
-                const dy = other.pos.y - elem.pos.y;
-                const dx = other.pos.x - elem.pos.x;
-                const dist = std.math.sqrt(dx * dx + dy * dy);
+                const dx = elem.pos.x - other.pos.x;
+                const dy = elem.pos.y - other.pos.y;
 
-                const alpha = std.math.atan2(dy, dx);
-                const grav = G * elem.mass * other.mass / (dist * dist);
-                const accel = grav / elem.mass;
+                const mag_sq = dx * dx + dy * dy;
+                const mag = std.math.sqrt(mag_sq);
+                const mag_c = mag * @max(15, mag_sq);
 
-                elem.vel.x += accel * std.math.cos(alpha) * dt;
-                elem.vel.y += accel * std.math.sin(alpha) * dt;
+                const acc_x = dx / mag_c;
+                const acc_y = dy / mag_c;
+
+                elem.acc.x -= acc_x * other.mass;
+                elem.acc.y -= acc_y * other.mass;
+
+                other.acc.x += acc_x * elem.mass;
+                other.acc.y += acc_y * elem.mass;
             }
         }
 
         for (&planets) |*elem| {
+            elem.vel.x += elem.acc.x * dt;
+            elem.vel.y += elem.acc.y * dt;
+
             elem.pos.x += elem.vel.x * dt;
             elem.pos.y += elem.vel.y * dt;
+
+            elem.acc.x = 0;
+            elem.acc.y = 0;
         }
     }
 }
