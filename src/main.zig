@@ -23,14 +23,14 @@ pub fn main() !void {
     const rand = std.crypto.random;
     var planets: [2000]planet = undefined;
 
-    const MAX_MASS: f64 = 1000;
-    const MIN_MASS: f64 = 1000;
+    const MAX_MASS: f64 = 3000;
+    const MIN_MASS: f64 = 3000;
 
     const MAX_DIST: f64 = 1000;
-    const MIN_DIST: f64 = 10;
+    const MIN_DIST: f64 = 100;
 
-    const MAX_VEL: f32 = 20;
-    const MIN_VEL: f32 = 10;
+    const MAX_VEL: f32 = 45;
+    const MIN_VEL: f32 = 45;
 
     for (0.., &planets) |idx, *elem| {
         elem.id = @intCast(idx);
@@ -39,11 +39,7 @@ pub fn main() !void {
 
         elem.size = 5;
 
-        if (idx % 2 == 0) {
-            elem.color = rl.Color.white;
-        } else {
-            elem.color = rl.Color.red;
-        }
+        elem.color = rl.Color.white;
 
         const dist = MIN_DIST + ((MAX_DIST - MIN_DIST) * rand.floatNorm(f64));
         const alpha = rand.float(f64) * 2 * std.math.pi;
@@ -101,7 +97,9 @@ pub fn main() !void {
 
                 const mag_sq = dx * dx + dy * dy;
                 const mag = std.math.sqrt(mag_sq);
-                const mag_c = mag * @max(15, mag_sq);
+
+                const clamp_mag = @max(mag, elem.size + other.size);
+                const mag_c = clamp_mag * clamp_mag * clamp_mag;
 
                 const acc_x = dx / mag_c;
                 const acc_y = dy / mag_c;
@@ -111,6 +109,26 @@ pub fn main() !void {
 
                 other.acc.x += acc_x * elem.mass;
                 other.acc.y += acc_y * elem.mass;
+
+                if (elem.size + other.size >= mag) {
+                    const unit_rx = dx / mag;
+                    const unit_ry = dy / mag;
+
+                    const edot = elem.mass * elem.acc.x * -unit_rx + elem.mass * elem.acc.y * -unit_ry;
+                    const odot = other.mass * other.acc.x * unit_rx + other.mass * other.acc.y * unit_ry;
+
+                    const ex = -edot * unit_rx / elem.mass;
+                    const ey = -edot * unit_ry / elem.mass;
+
+                    const ox = odot * unit_rx / other.mass;
+                    const oy = odot * unit_ry / other.mass;
+
+                    elem.acc.x += ox - ex;
+                    elem.acc.y += oy - ey;
+
+                    other.acc.x += ex - ox;
+                    other.acc.y += ey - oy;
+                }
             }
         }
 
